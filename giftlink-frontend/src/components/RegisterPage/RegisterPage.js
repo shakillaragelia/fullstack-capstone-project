@@ -1,22 +1,70 @@
 import React, { useState } from 'react';
 import './RegisterPage.css';
 
+// Step 1: Import config + Auth Context + navigate
+import { urlConfig } from '../../config';
+import { useAppContext } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 function RegisterPage() {
-    // State variables
+    // Form state
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    // Handle register
+    // Step 1 – Task 4: error message state
+    const [showerr, setShowerr] = useState('');
+
+    // Step 1 – Task 5: get navigate + auth context
+    const navigate = useNavigate();
+    const { setIsLoggedIn } = useAppContext();
+
+    // -------------------------
+    // Step 1 + Step 2: handleRegister
+    // -------------------------
     const handleRegister = async () => {
-        console.log("Register invoked");
-        console.log({
-            firstName,
-            lastName,
-            email,
-            password
-        });
+        try {
+            const response = await fetch(`${urlConfig.backendUrl}/api/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    password: password,
+                }),
+            });
+
+            // STEP 2 — Task 1: Access JSON data
+            const json = await response.json();
+
+            // If success → authtoken exists
+            if (json.authtoken) {
+                // STEP 2 — Task 2: Set session storage
+                sessionStorage.setItem('auth-token', json.authtoken);
+                sessionStorage.setItem('name', firstName);
+                sessionStorage.setItem('email', json.email);
+
+                // STEP 2 — Task 3: Set user as logged in globally
+                setIsLoggedIn(true);
+
+                // STEP 2 — Task 4: Redirect to MainPage
+                navigate('/app');
+                return;
+            }
+
+            // STEP 2 — Task 5: Error from backend
+            if (json.error) {
+                setShowerr(json.error);
+            }
+
+        } catch (e) {
+            setShowerr("Internal error. Please try again.");
+            console.log("Error fetching details: " + e.message);
+        }
     };
 
     return (
@@ -25,6 +73,13 @@ function RegisterPage() {
                 <div className="col-md-6 col-lg-4">
                     <div className="register-card p-4 border rounded">
                         <h2 className="text-center mb-4 font-weight-bold">Register</h2>
+
+                        {/* STEP 2 — Task 6: Show error to end user */}
+                        {showerr && (
+                            <div className="alert alert-danger text-center">
+                                {showerr}
+                            </div>
+                        )}
 
                         {/* First Name */}
                         <div className="mb-3">
